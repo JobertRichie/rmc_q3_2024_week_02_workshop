@@ -54,7 +54,7 @@ Cameroon, Germany and Malaysia",
   theme(legend.position = "bottom")
 ```
 
-## Summary of overalldDiseases burden findings
+## Summary of overall diseases burden findings
 
 The burden due to CMNN diseases seem to be the major contributor to the overall diseases burden, as the trends for overall diseases mimics that for CMNN ones. DALYs for Germany is the lowest while that for Cameroon is the highest, this being the same over time. In Cameroon, the DALYs for overall diseases increased from 1990, peaked in 2002 and then decreased sharply until 2019. In Germany and Malaysia, there was a slight decrease over time. 
 

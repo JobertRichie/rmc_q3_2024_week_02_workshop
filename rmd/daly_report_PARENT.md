@@ -3,11 +3,6 @@ Global Disease Burden Analysis
 Jobert Richie Nansseu
 \_ 2024-07-19
 
-<style>
-body {
-text-align: justify}
-</style>
-
 # Introduction
 
 This document compares the Disability-Adjusted Life Year (DALY) diseases
@@ -76,6 +71,7 @@ increased between 1990 and 2001 before a sharp decrease up to 2019.
 ## Cumulative CMNN diseases burden for the three countries over time
 
 ![](daly_report_PARENT_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
 The cumulative trend for the three countries shows an increasing burden
 from 1990 to 2001, then an exponential decrease up to 2019.
 
@@ -177,7 +173,7 @@ pattern over time.
 
 ![](daly_report_PARENT_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
-## Summary of overalldDiseases burden findings
+## Summary of overall diseases burden findings
 
 The burden due to CMNN diseases seem to be the major contributor to the
 overall diseases burden, as the trends for overall diseases mimics that
