@@ -1,0 +1,27 @@
+{
+    "id": "C484E078",
+    "path": "~/Personnels/R_BB_GRAPH/Final Capstone Project/Capstone Project/rmd/Capstone_Project_JRNN.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1721400292616.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "chunk_output_type": "console",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "141,0",
+        "scrollLine": "136"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1719573277,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1719573277,
+    "read_only": false,
+    "read_only_alternatives": []
+}

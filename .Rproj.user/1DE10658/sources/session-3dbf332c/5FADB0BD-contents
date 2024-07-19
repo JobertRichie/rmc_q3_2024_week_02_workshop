@@ -1,0 +1,609 @@
+---
+title: "Workshop 8: Bubble plots, scales, themes, and {plotly}"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    toc: true
+    number_sections: false
+author: "Jobert Richie Nansseu"
+date: "2024-05-28"
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+  wrap: none
+---
+
+# Introduction
+
+Welcome!
+
+This workshop is a hands-on approach to data visualization and reviewing some the {dplyr} functions you're already familiar with.
+
+This week's lesson notes have been linked below. They can be very helpful for completing the exercise, so feel free to refer to them during the workshop!
+
+-   [Intro to ggplot2](https://the-graph-courses.github.io/data_on_display_wp/lessons/ls01_gg_intro_filled.html)
+
+-   [Scatter plots and smoothing](https://the-graph-courses.github.io/data_on_display_wp/lessons/ls02_scatter.html)
+
+------------------------------------------------------------------------
+
+# Set Up for the Exercise
+
+1.  **First download the repo to your local computer.** To get started, you should download, unzip, and look through the assignment folder.
+
+2.  **Open the** **RStudio Project** by clicking on the relevant *.Rproj* file in the unzipped workshop folder. Make sure you have opened week_08_workshop.Rproj in RStudio by looking at the name of your RStudio window, or in the upper right corner of your screen.
+
+3.  **Open the assignment Rmd.** Navigate to the Files tab in RStudio and open the "rmd" folder. You will be working in the file called "week_08_exercise.Rmd". This Rmd contains both the instructions and the workshop assignment in one file.
+
+4.  **Complete the assignment.** Work through the steps in "week_08_exercise.Rmd". Replace every instance of `"WRITE_YOUR_CODE_HERE"` with your answers. The assignment should be submitted individually, but you are encouraged to brainstorm with partners. Though you are allowed to work with group members, *it is important that all the code you submit has been typed yourself*.
+
+------------------------------------------------------------------------
+
+# What are Bubble Plots?
+
+A **bubble plot** is a type of scatter plot where a third dimension is added: an additional numeric variable is represented by the **size** of points.
+
+In February 2006, a Swedish physician and data advocate named Hans Rosling gave a famous TED talk titled ["The best stats you've ever seen"](https://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen) where he presented global economic, health, and development data complied by the Gapminder Foundation.
+
+The talk featured a famous bubble plot similar to this one:
+
+![](https://blogs.sas.com/content/sastraining/files/2019/01/wealth_build4-3.png)
+
+Here the points display a relationship between two numeric variables on each axis, as well as a third numeric variable: the size of the bubble represents population.
+
+Notice that the x-axis is using a logarithmic scale, not a linear scale. This is to avoid crowding the points. In this exercise, we will be transforming the axes of our plot in order to replicate the Gapminder bubble plot as closely as we can.
+
+------------------------------------------------------------------------
+
+# Packages
+
+To get started, **load in the needed packages**: {tidyverse}, {here}, {plotly} and {gapminder}.
+
+```{r}
+# Load packages
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(tidyverse, here, plotly, gapminder, gganimate, ggpmisc, htmlwidgets, gifski, png)
+```
+
+------------------------------------------------------------------------
+
+# Gapminder Data
+
+The R package {gapminder}, which we just loaded, contains global economic, health, and development data complied by the Gapminder Foundation.
+
+Run the following code to load `gapminder` data frame from the {gapminder} package:
+
+```{r message = FALSE}
+# Tell R to get the inbuilt dataframe from the package
+data(gapminder, package="gapminder")
+
+# Print dataframe
+gapminder
+```
+
+Each row in this table corresponds to a country-year combination. For each row, we have 6 columns:
+
+1)  **`country`**: Country name
+
+2)  **`continent`**: Geographic region of the world
+
+3)  **`year`**: Calendar year
+
+4)  **`lifeExp`**: Average number of years a newborn child would live if current mortality patterns were to stay the same
+
+5)  **`pop`**: Total population
+
+6)  **`gdpPercap`**: Gross domestic product per person (inflation-adjusted US dollars)
+
+The `glimpse()` and `summary()` functions can tell us more about these variables.
+
+```{r}
+# Data structure
+glimpse(gapminder)
+levels(gapminder$continent)
+```
+
+This version of the **`gapminder`** dataset contains information for **142 countries**, divided in to **5 continents** or world regions.
+
+Data are recorded every 5 years from 1952 to 2007 (a total of 12 years).
+
+```{r}
+# Data summary
+summary(gapminder)
+```
+
+In this lesson, we will be using the `gapminder` dataframe , but only the data from 2007.
+
+We can use {dplyr} functions to manipulate the dataset and prepare it for plotting. Read through the commented code below and complete the data manipulation steps:
+
+```{r}
+# Create new data frame called gapminder07
+gapminder07 <- gapminder %>%
+  # FILTER data frame to only include rows from 2007
+  filter(year == 2007) %>%
+  # REMOVE the year column
+  select(!year) %>%
+  # RENAME columns to make them easier to understand
+  rename(life_expectancy = lifeExp,
+         population = pop,
+         gdp_per_capita = gdpPercap) %>% 
+  # REORDER dataset by DESCENDING population size (this will be useful for plotting later)
+  arrange(desc(population))
+
+# View new data subset
+gapminder07
+```
+
+We will use this new `gapminder07` data frame for plotting the bubble plot.
+
+------------------------------------------------------------------------
+
+# Simple Scatterplot with `geom_point()`
+
+We will start with a regular scatter plot showing the relationship between two numerical variables, and then make it a bubble plot in the next step.
+
+We want to view the relationship between life expectancy and GPD per capita.
+
+Create a scatter plot, with GDP on the x axis and life expectancy on the y axis:
+
+```{r}
+# Simple scatterplot
+ggplot(data = gapminder07,
+       mapping = aes(x = gdp_per_capita,
+                     y = life_expectancy)) + 
+  geom_point(size = 2.5,
+             alpha = 0.7,
+             color = "seagreen",
+             shape = 21,
+             fill = "green") +
+  labs(x = "Gross Domestic Product per capita (usd)",
+       y = "Life expectancy at birth (years)",
+       title = "Relationship between GDP and life expectancy at birth",
+       subtitle = "Global tendancy for the year 2007")
+```
+
+Let's review this plot through the grammar of graphics:
+
+1.  The `geom`etric objects - visual marks that represent the data - are points.
+2.  The `data` variable **gdp_per_capita** gets mapped to the `x`-position `aes`thetic of the points.
+3.  The `data` variable **life_expectancy** gets mapped to the `y`-position `aes`thetic of the points.
+
+What we have created is a simple scatterplot by adding together the following components:
+
+![](images/ggplot_intro1.png){width="482"}
+
+------------------------------------------------------------------------
+
+# Quick Detour: Plots as Objects
+
+A {ggplot2} graph can be saved as a named R object (like a data frame), manipulated further, and then printed or saved.
+
+We use the assignment operator (`<-`) to save the plot as an object, just as we have done with data frames.
+
+```{r}
+# Save the simple scatterplot as a named object
+gap_plot_base <- ggplot(
+  data = gapminder07,
+  mapping = aes(
+    x = gdp_per_capita,
+    y = life_expectancy)) +
+  geom_point() 
+```
+
+This will appear in your environment, but it will **not** be printed. Unlike
+
+To view the plot, simply type and run the name of the object:
+
+```{r}
+# Call the plot
+gap_plot_base
+```
+
+Now that you have your plot as an R object, you can add new layers to it without retyping the previous code.
+
+For example, you can add a line of best fit to your scatter plot and save it as a new plot, without having to write the old code again:
+
+```{r}
+# Add new layer to simple scatterplot
+gap_plot_base + 
+  geom_smooth()
+
+# Save new plot as object
+gap_plot_02 <- gap_plot_base +
+   geom_smooth(method = "glm",
+              se = F,
+              color = "red") +
+# Add equation and R-squared
+    stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    label.x = 50000, label.y = 100,
+    formula = y ~ x, parse = TRUE,
+    angle = 10) 
+ 
+# Call the new plot
+gap_plot_02
+
+#Save the plot as an image
+ggsave(filename = here("images/plot_base.pdf"),
+       plot = gap_plot_02)
+```
+
+
+```{r}
+# Fit the GLM model
+model <- glm(life_expectancy ~ gdp_per_capita, data = gapminder07)
+
+# Extract the coefficients
+eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                 list(a = format(coef(model)[1], digits = 2), 
+                      b = format(coef(model)[2], digits = 2), 
+                      r2 = format(summary(model)$r.squared, digits = 3)))
+
+gap_plot_02_bis <- gap_plot_base +
+  scale_y_continuous(breaks = c(40, 50, 60, 70, 80, 90, 100)) + 
+  geom_smooth(method = "glm",
+              se = F,
+              color = "red") +
+    annotate("text", x = 50000, y = 90, label = as.character(as.expression(eq)), parse = TRUE, 
+           size = 5, fontface = "italic", family = "serif", color = "blue")
+gap_plot_02_bis
+
+#Save the plot
+ggsave(filename = here("images/plot_base2.pdf"),
+       plot = gap_plot_02_bis)
+```
+
+Later in the assignment you will need to create and store plots as objects.
+
+------------------------------------------------------------------------
+
+# Convert to Bubble Plot with `size` Aesthetic
+
+With {ggplot2}, bubble plots are built using the `geom_point()` function, just like scatterplot. The key distinction is that a third numeric variable must be mapped to the `size` aesthetic and provided to `aes()`.
+
+![](images/ggplot_intro2.png){width="482"}
+
+Now add an additional variable, `population`, and map it to the size aesthetic.
+
+```{r}
+# Create bubble plot
+ggplot(data = gapminder07,
+      mapping = aes(x = gdp_per_capita,
+                    y = life_expectancy,
+                    size = population)) +
+  geom_point()
+```
+
+Here, the population of each country is represented through point size. The legend will automatically be built by {ggplot2}, showing how point size scales with population size.
+
+Now, let's color the bubbles by continent. Here, the population of each country is represented through point size. The legend will automatically be built by {ggplot2}, showing how point size scales with population size.
+
+Now, let's color the bubbles by continent.
+
+```{r}
+# Add color to points
+ggplot(data = gapminder07,
+      mapping = aes(x = gdp_per_capita,
+                    y = life_expectancy,
+                    size = population,
+                    color = continent,
+                    text = country)) +
+  geom_point()
+```
+
+Remember when we arranged the population variable of `gapminder07` in descending order (largest to smallest). This is so that the smallest circles/bubbles are plotted on top of the larger circles/bubbles. If we had not arranged the `population` variable, smaller points would have been covered by the larger points.
+
+However, many of the points are still overlapping, so we can decrease the opacity of the points. Change the opacity of the points to 50%.
+
+```{r}
+ggplot(data = gapminder07,
+      mapping = aes(x = gdp_per_capita,
+                    y = life_expectancy,
+                    size = population,
+                    color = continent,
+                    text = country)) +
+  geom_point(alpha = 0.5)
+```
+
+Store the last plot as an object.
+
+```{r}
+# Save plot as a named object
+gap_bubble <- ggplot(data = gapminder07,
+      mapping = aes(x = gdp_per_capita,
+                    y = life_expectancy,
+                    size = population,
+                    color = continent,
+                    text = country)) +
+  geom_point(alpha = 0.5) + 
+   labs(
+    title = "Life Expectancy vs GDP per Capita",
+    subtitle = "Data for the year 2007",
+    x = "GDP per Capita (log scale, usd)",
+    y = "Life Expectancy at birth (years)",
+    size = "Population",
+    color = "Continent"
+   )
+
+# Call the new plot
+gap_bubble
+```
+
+Check that `gap_bubble` appears in your Environment pane.
+
+------------------------------------------------------------------------
+
+# Modifying Scales
+
+One of the optional grammar of graphics layers that we haven't learned about yet is `scale_*()` functions.
+
+![Scales control how variables are mapped to the visual characteristics of the plot. Scale functions (which start with `scale_`) allow you to modify how mappings in `aes()` are displayed.](images/gg_min_build2.png)
+
+In this section, you can simply run the code we've already written for you. We will use two new scale functions.
+
+## Control point size with `scale_size()`
+
+The first thing we need to improve on the previous bubble plot is the size range of the bubbles. `scale_size()` allows to set the size of the smallest and the biggest point using the `range` argument.
+
+```{r}
+gap_bubble02 <- gap_bubble +
+  scale_size(range = c(1, 20))
+
+gap_bubble02
+```
+
+Expanding the size range helps to highlight the variation in population size.
+
+## Log transform scales
+
+The original gapminder bubble plot we are recreating has a non-linear scale on the x-axis. This helps by spreading out the points that are clumped on the left side of the plot.
+
+In {ggplot2}, we can transform the x-axis using `scale_x_log10()`, which log-scales the x-axis (as the name suggests). We will add this function as a new layer after a `+` sign, as usual:
+
+```{r}
+gap_bubble03 <- gap_bubble02 +
+  scale_x_log10()
+
+gap_bubble03
+```
+
+Scale functions will be covered in more detail in the next prework lesson.
+
+## Remove scale guides
+
+You may notice that the scale guides for continent color and population size on the left side of the plot are quite large. We can remove these guides for a cleaner look. This takes away some information, but we will find a solution for this in the next step.
+
+Run the code below to remove the scale guides:
+
+```{r}
+gap_bubble04 <- gap_bubble03 +
+  guides(size = "none", color = "none")
+gap_bubble04
+```
+
+## Adding interactivity with {plotly}
+
+Our current bubble plot doesn't show us which country each bubble is from, or what the exact population and GDP of the country is.
+
+One way to communicate this information without crowding the graph is to make it interactive. The `ggplotly()` function from the {plotly} package can convert your plot to be interactive! Look at "gap_bubble_interactive.html" in the "images" folder to see an example of an interactive plot that can be made by `ggplotly()`.
+
+Your task for this section is to find out how to use this function to make your plot interactive, so that you can hover over the points to see additional information.
+
+```{r}
+# Create interactive plot
+gap_plotly <-  ggplotly(p = gap_bubble04)
+gap_plotly
+```
+
+We can't save this interactive plot with `ggsave()`. For this we will need the `saveWidget()` function from the {htmlwidgets} package.
+
+Search the web for how to use this function, and save your interactive plot as a HTML file in the "images" folder.
+
+```{r}
+# Save plotly plot
+htmlwidgets::saveWidget(widget = gap_plotly,
+                        file = here("images/gapminder_plot_global_2007.html"),
+                        title = "Global relationship between GDP and life expectancy for the year 2007")
+```
+
+------------------------------------------------------------------------
+
+# Wrap Up
+
+That's it for this assignment! We will choose 2-3 people to present your work during the workshop. If you would like to share your results with the class, please let an instructor know.
+
+The group representative should prepare to screenshare and give a short (3-4 sentence) presentation.
+
+Choose and highlight one aspect of the workshop that would be helpful and interesting to the class. For example, you can choose a question that your group found especially tricky, and explain how you found the solution. Or you can display one of your plots, and share some tips for additional customization.
+
+------------------------------------------------------------------------
+
+# Submission: Upload Rmd File
+
+Once you have finished the tasks above, you should save your answers and upload your assignment Rmd on the workshop webpage. You should upload just one Rmd file with your answers (do not upload the knitted HTML or a zipped folder). Make sure to include your name in the YAML header at the top of the script.
+
+The due date for the assignment is **Friday, May 31st at 23:59 GMT.**
+
+------------------------------------------------------------------------
+
+## Bonus Challenge (Optional)
+
+Now it's your turn to create an animated bubble chart using the {gganimate} package! Familiarize yourself with the {gganimate} package available here: <https://gganimate.com/>. The front page of the website actually contains much of the code you will need for this Gapminder bubble plot.
+
+Here are the basic steps:
+
+1.  Install and load the {gganimate} package.
+
+2.  Create a basic bubble chart similar to the one we made in this tutorial, but using all the gapminder data, not just 2007. Map the `gdpPercap` variable to x, `lifeExp` to y, and `pop` to size.
+
+3.  Add the animation by including `transition_time(year)` after the scatterplot layers. This will create the animation over time.
+
+4.  Render the animation and save it as a video or GIF.
+
+```{r}
+## Creating an animated bubble plot
+#Load packages
+pacman::p_load(gganimate)
+install.packages("gifski")
+install.packages("png")
+
+#Build the bubble plot, then add the animation 
+gap_bubble2 <- ggplot(data = gapminder,
+                      mapping = aes(
+                        x = gdpPercap,
+                        y= lifeExp,
+                        size = pop,
+                        color = continent,
+                        text = country)
+                      ) +
+  geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) + 
+  scale_x_log10() + 
+  guides(size = "none", color = "none") +
+  labs(x = "GDP per capita (log scale, usd)",
+       y = "Life expectancy at birth (years)",
+       title = "Year: {frame_time}") +
+  theme(title = element_text(size = 25), # Modify the sizes of title and axes' texts
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 15)) +
+  transition_time(year) + # animation using gganimate::transition_time
+  ease_aes("linear") # Define how the animation changes
+  
+#Calling the object 
+gap_bubble2
+
+#Saving the animation
+anim_save(filename = here("images/gdp_lfeExp_animated.gif"),
+          animation = gap_bubble2,
+          width = 1000,
+          heigth = 500)
+```
+
+------------------------------------------------------------------------
+
+## Further Challenge (Optional)
+
+Customize the animation further to try to mirror the aesthetic in Hans Rosling's video [here](https://www.youtube.com/watch?v=jbkSRLYSojo).
+
+1.  Add a large indicator for the year at the bottom right of the plot.
+
+2.  Adjust the GDP and life expectancy scale markers to closely mirror those in the video (25, 50 75 years; 400 4000, 40000 USD).
+
+3.  Add continent coloring that mirrors those in the video
+
+We have not covered many of these , but see if you can piece together the steps by reading the documentation for {gganimate}, asking GPT-4 for help, and searching online with Bing.
+
+```{r}
+##Adding a large indicator for the year at the bottom right: we have used caption instead of title, hjust = 1 == right, hjust = 0.5 == centre, hjust = -1 == left
+
+gap_bubble3 <- ggplot(data = gapminder,
+                      mapping = aes(
+                        x = gdpPercap,
+                        y= lifeExp,
+                        size = pop,
+                        color = continent,
+                        text = country)
+                      ) +
+  geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) + 
+  scale_x_log10(breaks = c(400, 4000, 40000)) + 
+  scale_y_continuous(breaks = c(25, 50, 75)) +
+  guides(size = "none", color = "none") +
+  labs(x = "GDP per capita (log scale, usd)",
+       y = "Life expectancy at birth (years)",
+       caption = "{frame_time}") +
+  theme(plot.caption = element_text(size = 50,
+                             hjust = 1),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 15)) +
+  transition_time(year) + 
+  ease_aes("linear") 
+  
+#Calling the object 
+gap_bubble3
+
+#Saving the animation
+anim_save(filename = here("images/gdp_lfeExp_animated2.gif"),
+          animation = gap_bubble3,
+          width = 1000,
+          heigth = 500)
+```
+
+
+```{r}
+#Alternative: saving an animation using animate()
+gap_bubble3 <- ggplot(data = gapminder,
+                      mapping = aes(
+                        x = gdpPercap,
+                        y= lifeExp,
+                        size = pop,
+                        color = continent,
+                        text = country)
+                      ) +
+  geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) + 
+  guides(size = "none", color = "none") +
+  labs(x = "GDP per capita (log scale, usd)",
+       y = "Life expectancy at birth (years)",
+       title = "Year: {frame_time}") +
+  transition_time(year) + 
+  ease_aes("linear")
+
+#Saving as a video
+animate(plot = gap_bubble3, renderer = gifski_renderer())
+```
+
+
+```{r}
+#Faceting the plot to present it by continent
+ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  transition_time(year) +
+  ease_aes('linear')
+```
+
+```{r}
+# Manually defining the colors for continent levels and building an interactive plot (plotly) with the whole dataset
+
+gap_bubble_n <- 
+  gapminder %>% 
+  mutate(colors = case_when(
+    continent == "Africa" ~ "red",
+    continent == "Americas" ~ "seagreen",
+    continent == "Asia" ~ "darkblue",
+    continent == "Europe" ~ "gray",
+    continent == "Oceania" ~ "yellow")) %>% 
+  ggplot(mapping = aes(x = gdpPercap,
+                    y = lifeExp,
+                    size = pop,
+                    color = colors,
+                    text = country,
+                    frame = year)) +
+  geom_point(alpha = 0.5) + 
+   labs(
+    title = "Life Expectancy vs GDP Per Capita",
+    subtitle = "Evolution from 1952 to 2007",
+    x = "GDP Per Capita (log scale, usd)",
+    y = "Life Expectancy (years)") + 
+  scale_color_identity() +
+  scale_size(range = c(2, 12)) + 
+  scale_x_log10() + 
+  guides(size = "none", color = "none")
+
+gap_plotly1 <- ggplotly(gap_bubble_n)
+gap_plotly1 
+
+#Save in html
+htmlwidgets::saveWidget(widget = gap_plotly1,
+                        file = here("images/gapminder_plot_global_1952_to_2007.html"),
+                        title = "Global relationship between GDP and life expectancy from 1952 to 2007")
+
+
+
+```

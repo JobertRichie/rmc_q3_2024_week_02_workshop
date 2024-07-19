@@ -1,0 +1,758 @@
+---
+title: "Prevalence and associated factors of HIV infection among women living in Cameroon: cross-sectional analysis of the 2018 Demographic and Health Survey"
+date: "2024-06-28"
+author: "Jobert Richie Njingang Nansseu"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+    toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE,
+                      warning = FALSE
+                      )
+
+#Load packages for data importation, wrangling and visualization
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(janitor, #for data analysis
+               here,    #for indicating the working directory
+               haven,   #for importing files in STATA format
+               tidyverse, #for data wrangling and visualization
+               ggrepel,  #for customizing pie charts
+               flextable, #for formatting tables
+               reactable,  #for formatting tables
+               reactablefmtr, #for adding caption to reactable
+               cowplot # for combining plots into one
+               )
+```
+
+# 1. Introduction: background & rationale
+HIV/AIDS remains a major toll of illness and death globally. According to the latest UNAIDS global report released in July 2023, 39 million people were living with HIV in 2022, among whom 29.8 million were receiving life-saving treatment. Although there has been paramount efforts in the fight against the pandemic over the past three decades, many people continue to die from the disease. indeed, AIDS claimed a life every minute in 2022, and remains the fourth-leading cause of death in Sub-Saharan Africa. Besides, 1.3 million new infections were reported in 2022, mostly among children (0-14 years) and young people (15-24 years) [1]. 
+
+The report points remarkable global efforts towards achieving **Sustainable Development Goal (SDG) 3.3 of ending AIDS as a public health threat by 2030** through the **95-95-95** targets that 5 countries have reached in 2022 while 16 other countries have been within reach [1]. The first 95 target requests that 95% of people infected with HIV know their status, which requires intensifying screening campaigns/strategies within the population to identify HIV infected people and put them on treatment. This would enable achieving the second (95% of HIV-infected people are on treatment) and third 95 targets (95% of HIV-infected people put on treatment are virally suppressed).
+
+Implementing screening programs among women (of reproductive age) is paramount for the prevention of HIV among children which occurs either during pregnancy, birth or breastfeeding. Additionally, identifying what factors are associated with the presence of the virus would help in defining targeted interventions to prevent new infections including through vertical transmission. This is the rationale guiding the present study that was conducted in Cameroon, a sub-Saharan African and resource-constrained country.
+
+# 2. Objectives
+## 2.1 General objective
+The general objective of this study was to determine the prevalence of HIV infection among women living in Cameroon, and investigate some potential socio-demographic factors that could influence it.
+
+## 2.2 Specific objectives
+Specifically, we intended to: 
+
+* Describe the study population; 
+
+* Determine the prevalence of HIV infection; 
+
+* Explore potential factors influencing this prevalence.
+
+# 3. Methods
+## 3.1 Study design and setting
+This is a cross-sectional study that was conducted in Cameroon. This is a Central African country that comprises ten administrative regions, 52 Departments and 360 municipalities.
+
+## 3.2 Data source & Approvals
+For the purpose of the present study, data were retrieved from the latest Cameroon Demographic and Health Survey (DHS) conducted in 2018 and later released in 2020 [2]. Accordingly and through the course instructors, authorizations were requested from the DHSs Program team who granted their approval. Actually, the DHSs Program has collected, analyzed, and disseminated accurate and representative data on population, health, HIV, and nutrition through more than 400 surveys in over 90 countries [3].
+
+The methods used to conduct the Cameroon 2018 DHS are extensively described in its report, including description of the study population, sampling methods, calculation of the sample size, etc. [2].
+
+## 3.3 Variables of interest
+
+```{r importation}
+#Importing data in R using haven
+cmr_dhs7 <- haven::read_dta(here("data/CMIR71FL.DTA"),
+                           col_select = c(
+                  #socio-demographic data
+                  caseid, v006, v007, v008, v009, v010, v011,
+                  v012, v013, v024, v025, v106, v130, v155, 
+                  v190, v501,
+                  
+                  #HIV/AIDS-related data
+                  v473a, v473b, v750, v751, v754bp, v754cp, 
+                  v754dp, v754jp, v754wp, v756, v774a, v774b, 
+                  v774c, v775, v777, v777a, v778, v779, v781, 
+                  v783, v785, v791a, v823, v824, v825, v826, 
+                  v826a, v827, v828, v829, v837, v838a, v838b,
+                  v838c, v839, v839a, v840, v840a, v841, v841a, 
+                  v842, v843, v844, v847, v848, v856, v857a, 
+                  v857b, v857c, v857d, v858, s1018a, s1023a, 
+                  s1029a, s1032r)
+                  )
+```
+
+A subset of the whole dataset was retrieved for the present study, yielding only female data that were collected during the survey. In addition, over the approximately 5,000 columns, socio-demographic variables (age, region, setting, level of education, etc.) and HIV/AIDS related variables were selected for further analysis, for a total of **`r ncol(cmr_dhs7)`** variables retained.
+
+### Independent and outcome variables
+The outcome variable to be used to generate the prevalence of HIV infection among the study population is the result of the HIV test, either positive or negative among those who granted consent to be sampled (var v473a) and whose blood had thus been collected (var v473b).
+
+However, this variable was not available in the database put at our disposal. This seems available in another database that has to be requested from the DHSs Program. In this context and in the seek of time, we used the result of HIV during pregnancy (var s1029a) as a proxy to estimate the prevalence of HIV among our study population.
+
+The independent variables explored were essentially socio-demographic characteristics: age (v012), age-group (v013), region of interview (v024), setting (v025), level of education (v106), religion (v130), current marital status (v501), literacy (v155), and wealth-index (v190). Of note, ethnicity was not taken into account, due to the very high number of levels (n = 264).
+
+## 3.4 Data synthesis and analysis
+Data were imported, cleaned and analysed using **R, version 4.3.3**. Considering that DHS data come in the form of a **.dta file** (STATA format), these data were first imported into R while limiting the selection to the variables of interest as described above. Then, the independent and outcome variables were renamed and transformed into factors.
+
+The prevalence of HIV infection was calculated as a proxy of the proportion of women having a positive HIV result during pregnancy among those for whom the information was available, with its 95% confidence interval (CI).
+
+Results are summarized using median and interquartile range (IQR) for continuous variables, and frequency/percentages for categorical variables, and are illustrated using tables and figures.
+
+```{r renaming}
+#Renaming variables of interest
+cmr_dhs7_renamed <- 
+  cmr_dhs7 %>%
+  rename(case_id = caseid,
+         age = v012,
+         age_group = v013,
+         region = v024,
+         setting = v025,
+         level_educ = v106,
+         religion = v130,
+         literacy = v155,
+         marital_status = v501,
+         wealth_index = v190,
+         consent_HIV_test = v473a,
+         sampling_HIV = v473b,
+         result_HIV_test = s1018a,
+         result_test_in_HC = s1023a,
+         result_test_pregnancy = s1029a
+         ) %>% 
+  select(case_id, age, age_group, region, setting,          
+         level_educ, religion, marital_status, literacy, 
+         wealth_index, consent_HIV_test, sampling_HIV, 
+         result_HIV_test, result_test_in_HC, 
+         result_test_pregnancy, everything() #reordering the variables
+         )
+
+#Converting from labelled to regular factor variables
+cmr_dhs7_clean <-
+  cmr_dhs7_renamed %>% 
+  as_factor()
+
+```
+
+```{r defaulttheme}
+#Setting up the theme for the different plots to generate
+theme_set(theme_minimal())
+```
+
+# 4. Results & interpretation
+## 4.1 Description of the study population
+
+In total, **`r nrow(cmr_dhs7_clean)`** women were interviewed. Their ages ranged from `r min(cmr_dhs7_clean$age)` to `r max(cmr_dhs7_clean$age)` years with a median of `r median(cmr_dhs7_clean$age)` years (IQR: `r quantile(cmr_dhs7_clean$age, 0.25)` - `r quantile(cmr_dhs7_clean$age, 0.75)`). **Figure 1** presents the distribution of respondents according to the age-group.
+
+```{r fig1}
+#Barplot with age_group
+ggplot(data = cmr_dhs7_clean,
+       mapping = aes(x = age_group)) +
+  geom_bar(color = "white",
+           width = 1,
+           fill = "forestgreen") +
+  geom_text(stat = "count",
+            aes(label = ..count..),
+            vjust = -0.5,
+            color = "black",
+            size = 4,
+            fontface = "bold") +
+  labs(x = "Age-group",
+       y = "Number of respondents",
+       tag = "Figure 1: Distribution of respondents according to the age-group",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+```{r age, include = FALSE}
+#Calculating the proportions for each age_group
+cmr_dhs7_clean %>% 
+  tabyl(age_group) %>% 
+  adorn_pct_formatting()
+```
+
+It clearly illustrates that women aged 15-19 years were the prevailing ones (n = 3 349; 22.8%), followed by the 20-24 years (n = 2 463; 16.8%). Besides, more than 50% of women were from urban areas (n = 7 839; 53.4%).
+
+```{r setting, include = FALSE}
+#Calculating proportions for setting: urban vs rural
+cmr_dhs7_clean %>% 
+  tabyl(setting) %>% 
+  adorn_pct_formatting()
+```
+
+```{r fig2}
+#Calculating the proportions for level of education and creating new variables to add the labels on the pie chart
+fig2 <- 
+  cmr_dhs7_clean %>% 
+  group_by(level_educ) %>% 
+  summarise(n = n()) %>% 
+  mutate(pct = round(100*n/sum(n)),
+         #defining the positions for the labels to add
+         csum = rev(cumsum(rev(n))), 
+         pos = n/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), n/2, pos)
+         )
+
+#Pie chart for level of education (Fig 2)
+ggplot(data = fig2,
+       mapping = aes(x = 4,
+                     y = n,
+                     fill = fct_inorder(level_educ)
+       )) +
+  geom_col(color = "white",
+         linewidth = 1) +
+  coord_polar(theta = "y") +
+  geom_label_repel(data = fig2,
+                   aes(y = pos,
+                       label = paste0(pct, "%")),
+                   size = 4,
+                   color = "white",
+                   fontface = "bold",
+                   nudge_x = 1,
+                   show.legend = F) +
+  labs(fill = "Level of education",
+       tag = "Figure 2: Distribution of respondents according to their educational levels",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme_void() +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+**Figure 2** depicts the distribution of respondents pertaining to their level of education. It shows that 52% (n = 7 609) of respondents had attended at least the secondary school while 19% (n = 2 767) of women had never gone to school.
+
+```{r tab1}
+#Table presenting the distribution of women per region of interview
+table1 <- 
+  cmr_dhs7_clean %>% 
+  tabyl(region) %>% 
+  arrange(desc(n)) %>% 
+  adorn_pct_formatting() %>% 
+  adorn_totals(where = "row") %>% 
+  reactable(
+    pagination = FALSE,
+    columns = list(
+      region = colDef(name = "Region"),
+      n = colDef(name = "Number of women"),
+      percent = colDef(name = "Percentage")
+           )) %>% 
+  add_title(
+    title = "Table 1: Distribution of respondents as per their region of interview",
+    align = "center",
+    font_size = 20
+    )
+
+table1
+```
+
+According to ***Table 1***, the top five regions mostly represented were: South (10.7%), Centre without Yaounde (10.6%), Far-North (10.5%), North (10.0%) and West (9.9%). The least represented regions were the North-West (5.5%) and South-West (2.7%). This might be explained by the humanitarian crisis that started in these two anglophone regions of the country in 2016, with progressive exacerbation over time. 
+
+```{r tab2}
+#Table presenting the distribution of women according to literacy
+table2 <- 
+  cmr_dhs7_clean %>% 
+  tabyl(literacy) %>% 
+  arrange(desc(n)) %>% 
+  adorn_pct_formatting() %>% 
+  adorn_totals(where = "row") %>% 
+  reactable(columns = list(
+   literacy = colDef(name = "Literacy modality"),
+   n = colDef(name = "Number of women"),
+   percent = colDef(name = "Percentage")
+            )) %>% 
+  add_title(
+    title = 
+      "Table 2: Distribution of women as per their literacy",
+    align = "center",
+    font_size = 20
+    )
+
+table2
+```
+
+Concerning literacy (***Table 2***), 10 494 (71.5%) respondents were able to read either parts of sentence or whole sentence. Worrisome, almost 30% of respondents (n = 4 118; 28.1%) could not read at all, with potential impact on their ability to gain knowledge from posters or other written messages that can be displayed/made available in health centres or other mass gathering places.
+
+```{r fig3}
+#Barplot with religion
+cmr_dhs7_clean %>% 
+  group_by(religion) %>% 
+  summarise(n = n()) %>% #calculating the count per level of religion
+  ggplot(aes(x = n,
+             y = reorder(religion, n))) +
+  geom_col(color = "white",
+           linewidth = 1,
+           fill = "forestgreen",
+           alpha = 0.8) +
+  geom_text(aes(label = n),
+            nudge_x = 300,
+            fontface = "bold") +
+  labs(x = "Number of respondents",
+       y = "Religion",
+       tag = "Figure 3: Distribution of women according to their religion",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom")
+```
+
+About the religion (**Figure 3**), **Christians** (either catholic, protestant or other congregations) were the most represented (n = 10 888; 74.2%). Regarding the wealth index, **Figure 4** reveals that 24% (n = 3 479) of respondents were in the middle quintile while 22% (n = 3 158) were in the richer and richest quintiles each. On the other hand, the poorest women represented 14% (n = 2 001) of the study population.
+
+```{r fig4}
+#Donot chart to show the distribution of wealth-index
+cmr_dhs7_clean %>% 
+  group_by(wealth_index) %>%
+  summarise(n = n()) %>% 
+  mutate(pct = round(100*n/sum(n))) %>% 
+  ggplot(aes(x = 3,
+             y = n,
+             fill = fct_inorder(wealth_index))) +
+  geom_col(position = "fill",
+           color = "white",
+           linewidth = 1) +
+  geom_text(aes(label = paste0(pct, "%")), #adding the labels
+            position = position_fill(vjust = 0.5),
+            color = "white",
+            fontface = "bold",
+            show.legend = F,
+            size = 5
+            ) +
+  coord_polar(theta = "y") +
+  xlim(c(0.2, 3 + 0.5)) +
+  labs(fill = "Wealth index",
+       tag = "Figure 4: Distribution of respondents according to the wealth index",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme_void() +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+ 
+```
+
+```{r tab3}
+#Table presenting the distribution of women according to their current marital status
+table3 <- 
+  cmr_dhs7_clean %>% 
+  tabyl(marital_status) %>% 
+  arrange(desc(n)) %>% 
+  adorn_pct_formatting() %>% 
+  adorn_totals(where = "row") %>% 
+  reactable(columns = list(
+   marital_status = colDef(name = "Current marital status"),
+   n = colDef(name = "Number of women"),
+   percent = colDef(name = "Percentage")
+            )) %>% 
+  add_title(
+    title = 
+      "Table 3: Distribution of women according to their marital status",
+    align = "center",
+    font_size = 20
+    )
+
+table3
+```
+
+It reads from ***Table 3*** that more than half of women (n = 8 060; 54.9%) were in couple: either living with a partner (13.7%) or married (41.3%).
+
+## 4.2 Prevalence of HIV infection among the study population
+
+```{r prevHIV}
+#Table 4 presenting the prevalence of HIV
+table4 <- 
+  cmr_dhs7_clean %>% 
+  tabyl(result_test_pregnancy) %>% 
+  adorn_pct_formatting() %>% 
+  adorn_totals(where = "row")
+
+#Formatting the table
+  table4a <- 
+    table4 %>% 
+    reactable(columns = list(
+      result_test_pregnancy = colDef(name = "HIV test result"),
+      n = colDef(name = "Number of women"),
+      percent = colDef(name = "Percentage"),
+      valid_percent = colDef(name = "Valid percentage")
+             )) %>% 
+    add_title(
+      title = 
+        "Table 4: Result of the HIV test during pregnancy",
+      align = "center",
+      font_size = 20
+    )
+  table4a
+
+#Transforming the objet table3 into a dataframe
+table4b <- as_tibble(table4)
+
+```
+
+As stated in the methods section, we used the result of HIV test during pregnancy as a proxy to estimate the prevalence of HIV among the study population. The data was unavailable for 6 838 (46.6%) respondents. Accordingly (***Table 4***), the prevalence of HIV was estimated at **`r table4b[1, 4]` (95% CI: 2.0 - 2.6)**.
+
+## 4.3 HIV infection vs socio-demographic characteristics
+
+```{r filter}
+#Selecting women with a positive or negative test
+cmr_dhs7_clean2 <- 
+  cmr_dhs7_clean %>% 
+  filter(result_test_pregnancy %in% c("positive", "negative"))
+```
+
+This part of our analysis aims to see if the prevalence of HIV infection shows any differences by socio-demographic variables. For this purpose, we selected only those women who were either positive or negative. There were `r nrow(cmr_dhs7_clean2)` women with a test either positive or negative according to their declarations.
+
+### 4.3.1 HIV infection and age
+
+```{r quintage, include = FALSE}
+#Calculating the quantiles of age by result of HIV test
+cmr_dhs7_clean2 %>% 
+  group_by(result_test_pregnancy) %>% 
+  reframe(quantile = quantile(age, na.rm = T))
+```
+
+```{r fig5}
+#Constructing a boxplot with age and result-test-pregnancy
+fig5a <- 
+  ggplot(data = cmr_dhs7_clean2,
+         mapping = aes(x = result_test_pregnancy,
+                       y = age,
+                       fill = result_test_pregnancy)) +
+  geom_boxplot() +
+  stat_summary(fun = "sd",
+               geom = "point",
+               size = 3,
+               shape = 23,
+               fill = "black") +
+  scale_x_discrete(labels = c("Positive", "Negative")) +
+  scale_fill_discrete(labels = c("Positive", "Negative")) +
+  labs(fill = "Result of HIV test",
+       tag = "Figure 5a: Prevalence of HIV by age",
+       x = "Result of HIV test",
+       y = "Age (years)") +
+  theme(plot.tag.position = "bottom",
+        plot.tag = element_text(size = 12),
+        legend.position = "top")
+
+#Calculating the prevalence of HIV in each age-group
+fig5b <- 
+  cmr_dhs7_clean2 %>% 
+  count(age_group, result_test_pregnancy) %>% 
+  group_by(age_group) %>% 
+  mutate(pct = round(100*n/sum(n),
+                     digits = 1)) %>% 
+  filter(result_test_pregnancy == "positive") %>% 
+#Representing the result of HIV test in each age-group
+  ggplot(aes(x = age_group,
+             y = pct,
+             group = 1)) +
+  geom_point(size = 2) +
+  geom_line(color = "red",
+            alpha = 0.8,
+            linewidth = 1,
+            linetype = 1) +
+  geom_text(aes(label = paste0(pct, "%")),
+            vjust = -0.5) +
+  scale_x_discrete(labels = c("15-19", "", "25-29", "", "35-39", "", "45-49", "", "55-59", "")) +
+  labs(tag = "Figure 5b: Prevalence of HIV by age-group",
+       x = "Age-group",
+       y = "Prevalence of HIV (%)",
+       caption = "Source: Cameroon DHS 7 ~ 2018")+
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot",
+        plot.tag = element_text(size = 12))
+
+#Combining the two plots in one grid
+plot_grid(fig5a, fig5b, nrow = 1, 
+          labels = c("Fig 5a", "Fig 5b"),
+          label_size = 10)
+```
+
+Women yielding a positive HIV test seemed older (median = 39 years; IQR: 31.2 - 45.8) than those with a negative test (median = 30 years; IQR = 23 - 40). This is illustrated by **Figure 5a**. In addition, **Figure 5b** clearly shows that the prevalence of HIV increases with age, from a minimum of 0.7% among the 15-19 years age-group to a maximum of 4.8% among the 50-54 years. However, the prevalence equaled 2.3% among the 55-59 years, perhaps due to the lower number of respondents for whom the information was available in this age-group.
+
+### 4.3.2 HIV infection and type of place of residence (urban vs rural)
+Data (**Figure 6**) tend to show that the prevalence of HIV is higher in rural (3.1%) than in urban areas (1.9%). 
+
+```{r fig6}
+#Calculating the prevalence of HIV by setting
+fig6 <- 
+  cmr_dhs7_clean2 %>% 
+  count(setting, result_test_pregnancy) %>% 
+  group_by(setting) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  select(!n) %>% 
+  adorn_pct_formatting()
+
+#Drawing a grouped barchart using geom col
+ggplot(data = fig6,
+       mapping = aes(x = setting,
+                     y = pct,
+                     fill = result_test_pregnancy)) +
+  geom_col(position = "dodge",
+           color = "white",
+           linewidth = 1) +
+  geom_text(aes(label = pct,
+                group = result_test_pregnancy),
+            color = "black",
+            position = position_dodge(width = 0.9),
+            vjust = -0.5,
+            size = 4,
+            fontface = 2) +
+  scale_x_discrete(labels = c("Urban", "Rural")) + 
+  scale_fill_discrete(labels = c("Positive", "Negative")) +
+  labs(tag = "Figure 6: Prevalence of HIV infection by setting",
+       x = "Setting",
+       y = "Prevalence (%)",
+       fill = "Result of HIV test",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+  
+```
+
+### 4.3.3 HIV infection and region of interview
+
+```{r fig7}
+#Calculating the prevalence of HIV by region
+fig7 <- 
+  cmr_dhs7_clean2 %>% 
+  count(region, result_test_pregnancy) %>% 
+  group_by(region) %>% 
+  mutate(pct = round(100*n/sum(n),
+                     digits = 1)) %>% 
+  filter(result_test_pregnancy == "positive")
+
+#Building a barplot with only positive women
+ggplot(data = fig7,
+       mapping = aes(x = reorder(region, pct),
+                     y = pct,
+                     fill = result_test_pregnancy)) +
+  geom_col() + 
+  guides(fill = "none") +
+  geom_text(aes(label = paste0(pct, "%")),
+            color = "black",
+            size = 4,
+            nudge_y = 0.3,
+            fontface = "bold"
+            ) +
+   coord_flip() +
+   labs(tag = "Figure 7: Prevalence of HIV infection by region",
+       x = "Region of interview",
+       y = "Prevalence (%)",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+**Figure 7** shows some discrepancies in the distribution of the prevalence of HIV across the ten regions of the country. Indeed, the lowest prevalence of 0.6% was observed in the Littoral region (without Douala) ; the second lowest one was observed in the Far-North region (0.8%). On the other hand, the first two regions with the highest prevalence were the North-West region at 5.5% and the Centre region (without Yaounde) at 3.6%.
+
+### 4.3.4 HIV infection and education
+
+```{r fig8}
+#Calculating the prevalence of HIV by level of education
+fig8 <- 
+  cmr_dhs7_clean2 %>% 
+  count(level_educ, result_test_pregnancy) %>% 
+  group_by(level_educ) %>% 
+  mutate(pct = round(100*n/sum(n),
+                     digits = 1)) %>% 
+  filter(result_test_pregnancy == "positive")
+
+#Building a barplot with only positive women
+ggplot(data = fig8,
+       mapping = aes(x = level_educ,
+                     y = pct,
+                     fill = result_test_pregnancy)) +
+  geom_col() + 
+  guides(fill = "none") +
+  geom_text(aes(label = paste0(pct, "%")),
+            color = "black",
+            size = 3.5,
+            vjust = -0.5,
+            fontface = "bold"
+            ) +
+   labs(tag = "Figure 8: Prevalence of HIV infection by level of education",
+       x = "Level of education",
+       y = "Prevalence (%)",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+There were some differences in the prevalence of HIV according to the level of education. Women of higher educational level had the lowest prevalence at 0.4% while those of primary level had the highest prevalence at 3.5%.
+
+### 4.3.5 HIV infection and literacy
+
+```{r tab5}
+#Calculating the prevalence of HIV by literacy modality 
+table5 <- 
+  cmr_dhs7_clean2 %>% 
+  count(literacy, result_test_pregnancy) %>% 
+  group_by(literacy) %>% 
+  mutate(pct = round(100*n/sum(n),
+                     digits = 1)) %>% 
+  reactable(columns = list(
+    literacy = colDef(name = "Literacy modality"),
+    result_test_pregnancy = colDef(name = "HIV test result"),
+    n = colDef(name = "Number of women"),
+    pct = colDef(name = "Percentage (%)")
+            )) %>% 
+  add_title(
+      "Table 5: Prevalence of HIV infection by literacy",
+              align = "center",
+              font_size = 20
+    )
+
+table5
+
+```
+
+***Table 5*** presents the prevalence of HIV by literacy modality. The prevalence was equal to 2.1% among those able to read whole sentence, and higher at 3.1% among those able to read only parts of sentence. For two other modalities, the prevalence equaled 0.0%, perhaps due to the lower number of respondents in these respective categories. 
+
+### 4.3.6 HIV infection and religion
+In order to ease the interpretations, we categorised the variable "religion" into three new levels, namely: "Christians", "Muslims", and "Others".
+
+```{r religion2}
+#Creating a new variable religion2 with the new categories
+cmr_dhs7_clean2 <- 
+  cmr_dhs7_clean2 %>% 
+  mutate(religion2 = case_when(
+    religion %in% c("catholic", "protestant", "other christians") ~ "Christians",
+    religion == "muslim" ~ "Muslims",
+    TRUE ~ "Others"
+  ))
+```
+
+```{r fig9}
+#Calculating the prevalence of HIV by religion
+fig9 <- 
+  cmr_dhs7_clean2 %>% 
+  count(religion2, result_test_pregnancy) %>% 
+  group_by(religion2) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  select(!n) %>% 
+  adorn_pct_formatting()
+
+#Drawing a grouped barchart using geom col
+ggplot(data = fig9,
+       mapping = aes(x = religion2,
+                     y = pct,
+                     fill = result_test_pregnancy)) +
+  geom_col(position = "dodge",
+           color = "white",
+           linewidth = 1) +
+  geom_text(aes(label = pct,
+                group = result_test_pregnancy),
+            color = "black",
+            position = position_dodge(width = 0.9),
+            vjust = -0.5,
+            size = 4,
+            fontface = 2) +
+  scale_fill_discrete(labels = c("Positive", "Negative")) +
+  labs(tag = "Figure 9: Prevalence of HIV infection by religion",
+       x = "Religion",
+       y = "Prevalence (%)",
+       fill = "Result of HIV test",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+**Figure 9** shows a decreasing relationship between the prevalence of HIV and religion, from the highest level at 2.6% for Christians, 1.6% for Muslims, to the lowest level at 0.4% for other religions.
+
+### 4.3.7 HIV and marital status
+The variable marital status was transformed into a dichotomous variable called "in couple" with two modalities: Yes|No, for easy interpretation. Accordingly and intriguingly, the prevalence of HIV was higher among women currently not in couple as compared to those in couple (**Figure 10**).
+
+```{r incouple}
+#Creating a boolean variable (in couple Y/N) from marital_status
+cmr_dhs7_clean2 <- 
+  cmr_dhs7_clean2 %>% 
+  mutate(in_couple = if_else(
+    marital_status %in% c("married", "living with partner"), 
+                          "Yes", 
+                          "No")
+    )
+```
+
+```{r fig10}
+#Calculating the prevalence of HIV by marital status
+fig10 <- 
+  cmr_dhs7_clean2 %>% 
+  count(in_couple, result_test_pregnancy) %>% 
+  group_by(in_couple) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  select(!n) %>% 
+  adorn_pct_formatting()
+
+#Drawing a grouped barchart using geom col
+ggplot(data = fig10,
+       mapping = aes(x = in_couple,
+                     y = pct,
+                     fill = result_test_pregnancy)) +
+  geom_col(position = "dodge",
+           color = "white",
+           linewidth = 1) +
+  geom_text(aes(label = pct,
+                group = result_test_pregnancy),
+            color = "black",
+            position = position_dodge(width = 0.9),
+            vjust = -0.5,
+            size = 4,
+            fontface = 2) +
+  scale_fill_discrete(labels = c("Positive", "Negative")) +
+  labs(tag = "Figure 10: Prevalence of HIV infection by current marital status",
+       x = "Currently in couple",
+       y = "Prevalence (%)",
+       fill = "Result of HIV test",
+       caption = "Source: Cameroon DHS 7 ~ 2018") +
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+```
+
+### 4.3.8 HIV infection and wealth index
+
+```{r fig11}
+#Calculating the prevalence of HIV in each wealth quintile
+fig11 <- 
+  cmr_dhs7_clean2 %>% 
+  count(wealth_index, result_test_pregnancy) %>% 
+  group_by(wealth_index) %>% 
+  mutate(pct = round(100*n/sum(n),
+                     digits = 1)) 
+
+#Drawing figure 5 using geom_line
+fig11 %>% 
+  filter(result_test_pregnancy == "positive") %>% 
+  ggplot(aes(x = wealth_index,
+             y = pct,
+             group = 1)) +
+  geom_point(size = 2) +
+  geom_line(color = "red",
+            alpha = 0.8,
+            linewidth = 1,
+            linetype = 1) +
+  geom_text(aes(label = paste0(pct, "%")),
+            vjust = -0.5) +
+  labs(tag = "Figure 11: Prevalence of HIV by wealth index",
+       x = "Wealth index",
+       y = "Prevalence of HIV (%)",
+       caption = "Source: Cameroon DHS 7 ~ 2018")+
+  theme(plot.tag.position = "bottom",
+        plot.caption.position = "plot")
+ 
+```
+
+**Figure 11** illustrates a decreasing trend in the prevalence of HIV with the wealth index, with the lowest prevalence at 1.2% among the richest, and the highest prevalence at 3.4% among the poorest.
+
+# 5. Conclusion
+
+This study revealed a prevalence of HIV at **2.3% (95% CI 2.0-2.6)**. Interestingly, it was shown that this prevalence increases with age, is higher in rural settings, varies across the different regions of the country, level of education and literacy modality. In addition, it is higher among Christians than other religions, those not currently in couple vs those in couple, and decreases across the wealth quintiles. 
+
+However, there were some limitations that should be highlighted. Of note, the prevalence during pregnancy was used to estimate the prevalence within the study population instead of the result of HIV test following blood sampling. Moreover, these data were recorded on the basis of self-declarations, therefore subjecting them to information bias. Thereby, the present results might be underestimated. Indeed, the Cameroon 2018 DHS report pointed a prevalence of HIV infection at 3.1% for women [2]. Another limitation of this study lies in the fact that no statistical tests were used to assess the existence of real associations between the prevalence of HIV infection and socio-demographic characteristics. This might constitute the next steps of our study.
+
+Nevertheless, this study shows that HIV infection remains a major public health concern in Cameroon, especially among women, hence an increased risk of vertical transmission of the virus from the mother to the child. Consequently, more efforts should be invested in prevention programs among women, in screening women during pregnancy and preventing or considerably reducing the risk of transmission of HIV from mothers to their newborns.
+
+# References
+
+1.  UNAIDS. The Path that ends AIDS - 2023 UNAIDS Global AIDS update. July 2023. Accessible at: <https://thepath.unaids.org/>.
+
+2. Cameroon National Institute of Statistics (NIS) and the DHS Program ICF. 2018 Demographic and Health Survey. Yaounde, Cameroon and Rockville, Maryland, USA. February 2020. Accessible at: <https://chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://ins-cameroun.cm/wp-content/uploads/2022/05/ENG-00-00-Cameroon-DHS-2018-FINAL.pdf>.
+
+3. The Demographic and Health Surveys Program. Accessible at: <https://dhsprogram.com/>.

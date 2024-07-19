@@ -1,0 +1,5 @@
+"0","# Filter the dataset to include only the three countries chosen by your group."
+"0","data_cmnn_mini <- "
+"0","  data_cmnn %>% "
+"0","  filter(Entity %in% c(""Cameroon"", ""Germany"", ""Malaysia"")) %>% "
+"0","  rename(Daly = `DALYs (Disability-Adjusted Life Years) - Communicable, maternal, neonatal, and nutritional diseases - Sex: Both - Age: Age-standardized (Rate)`)  #shortening the name of the variable "
